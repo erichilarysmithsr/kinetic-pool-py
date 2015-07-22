@@ -1,0 +1,13 @@
+.DS_STORE
+
+# Python
+build/
+dist/
+*egg-info/
+*.pyc
+
+# IDEs
+.idea/
+
+# scripting
+tmp/
