@@ -30,15 +30,7 @@ class MemcachedDeviceMapTests(unittest.TestCase):
 	def test_set_entry(self):
 		info = DeviceInfo(wwn="123abc", addresses=["127.0.0.1"])
 		m = MemcachedDeviceMap()				
-		m["123abc"] = info
-		
-	def test_get_entry(self):
-		m = MemcachedDeviceMap()				
-		info = m["123abc"]
-		
-		self.assertEqual(info.wwn, "123abc")
-		self.assertEqual(info.addresses, ["127.0.0.1"])
-		self.assertEqual(info.port, 8123)
+		m["123abc"] = info		
 	
 	def test_verify_entry(self):
 		info = DeviceInfo(wwn="123abc", addresses=["127.0.0.1"])
