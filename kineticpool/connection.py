@@ -20,36 +20,50 @@
 
 #@author: Ignacio Corderi
 
-from device import MemcachedDeviceMap
-from kinetic import Client
+import logging
 from eventlet import sleep, Timeout
+from kinetic import Client
+
 from exceptions import WrongDeviceConnection, DeviceNotAvailable
+from maps import MemcachedDeviceMap
+
+LOG = logging.getLogger(__name__)
 
 class ConnectionManager(object):
 	
-    def __init__(self, conf, logger):
+    def __init__(self, 
+            persist_connection = False, 
+            connect_timeout = 3, 
+            connect_retry = 3, 
+            map_obj = None, 
+            logger = LOG):
         self.logger = logger
-        self.persist_connection = bool(conf.get('persist_connection', False))
-        self.connect_timeout = int(conf.get('connect_timeout', 3))
-        self.response_timeout = int(conf.get('response_timeout', 30))
-        self.connect_retry = int(conf.get('connect_retry', 3))
-        self.device_map = MemcachedDeviceMap(conf, logger)
+        self.persist_connection = persist_connection
+        self.connect_timeout = connect_timeout
+        self.connect_retry = connect_retry
+        if map_obj == None:
+            self.device_map = MemcachedDeviceMap()
+        else: self.device_map = map_obj
         self.conn_pool = {}
         		
     def _new_connection(self, device, **kwargs):
         kwargs.setdefault('connect_timeout', self.connect_timeout)
-        kwargs.setdefault('response_timeout', self.response_timeout)
-        device_info = self.device_map[device]
+        info = self.device_map[device]
         for i in range(1, self.connect_retry + 1):
             try:
-                c = Client(device_info.host, device_info.port,**kwargs)
+                c = Client(info.addresses[0], info.port,**kwargs)
                 c.connect()
-                if c.config.worldWideName != device_info.wwn: 
+                if c.config.worldWideName != info.wwn: 
                     raise WrongDeviceConnection("Drive at %s is %s, expected %s." % 
-                        c, c.config.worldWideName, device_info.wwn)
+                        (c, c.config.worldWideName, info.wwn))
+                return c                        
             except Timeout:
                 self.logger.warning('Drive %s connect timeout #%d (%ds)' % (
                     device, i, self.connect_timeout))
+            except WrongDeviceConnection: 
+                self.logger.exception('Drive %s has an incorrect WWN' % (device))
+                self.faulted_device(device)      
+                raise        
             except Exception:
                 self.logger.exception('Drive %s connection error #%d' % (
                     device, i))

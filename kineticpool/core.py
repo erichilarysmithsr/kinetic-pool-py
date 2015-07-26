@@ -20,15 +20,23 @@
 
 #@author: Ignacio Corderi
 
-from kinetic.common import KineticException
+import json
 
-# Base type for all kinetic pool exceptions 
-class KineticPoolException(KineticException): pass
-
-class DeviceNotFound(KineticPoolException): pass
-
-class InvalidEntry(KineticPoolException): pass
-
-class WrongDeviceConnection(KineticPoolException): pass
-
-class DeviceNotAvailable(KineticPoolException): pass
+class DeviceInfo(object):
+    
+    def __init__(self, wwn, addresses, port=8123):
+        if addresses == None: raise ValueError("Addresses can't be None")
+        if len(addresses) == 0: raise ValueError("Addresses can't be None")
+        self.wwn = wwn
+        self.addresses = addresses
+        self.port = port 
+       
+    @staticmethod        
+    def from_json(s): 
+        x = json.loads(s)
+        if not "wwn" in x: raise ValueError("Missing wwn information") 
+        if not "addresses" in x: raise ValueError("Missing address information") 
+        return DeviceInfo(x["wwn"], x["addresses"], int(x.get("port", 8123)))
+                 
+    def to_json(self):
+        return json.dumps(self.__dict__)        

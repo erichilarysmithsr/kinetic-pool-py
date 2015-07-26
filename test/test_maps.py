@@ -20,15 +20,45 @@
 
 #@author: Ignacio Corderi
 
-from kinetic.common import KineticException
+import unittest
+from kineticpool.core import DeviceInfo
+from kineticpool.maps import MemcachedDeviceMap
+from kineticpool import exceptions
 
-# Base type for all kinetic pool exceptions 
-class KineticPoolException(KineticException): pass
+class MemcachedDeviceMapTests(unittest.TestCase): 
 
-class DeviceNotFound(KineticPoolException): pass
-
-class InvalidEntry(KineticPoolException): pass
-
-class WrongDeviceConnection(KineticPoolException): pass
-
-class DeviceNotAvailable(KineticPoolException): pass
+	def test_set_entry(self):
+		info = DeviceInfo(wwn="123abc", addresses=["127.0.0.1"])
+		m = MemcachedDeviceMap()				
+		m["123abc"] = info
+		
+	def test_get_entry(self):
+		m = MemcachedDeviceMap()				
+		info = m["123abc"]
+		
+		self.assertEqual(info.wwn, "123abc")
+		self.assertEqual(info.addresses, ["127.0.0.1"])
+		self.assertEqual(info.port, 8123)
+	
+	def test_verify_entry(self):
+		info = DeviceInfo(wwn="123abc", addresses=["127.0.0.1"])
+		m = MemcachedDeviceMap()				
+		m["123abc"] = info		
+		info2 = m["123abc"]
+		
+		self.assertEqual(info.wwn, info2.wwn)
+		self.assertEqual(info.addresses, info2.addresses)
+		self.assertEqual(info.port, info2.port)
+		
+	def test_invalid_wwn(self):
+		info = DeviceInfo(wwn="123abc", addresses=["127.0.0.1"])
+		m = MemcachedDeviceMap()				
+		m["foo"] = info		
+		
+		with self.assertRaises(exceptions.InvalidEntry):
+			m["foo"]
+		
+				
+	
+		
+		
