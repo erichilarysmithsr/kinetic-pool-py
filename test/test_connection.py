@@ -26,13 +26,24 @@ from kineticpool import exceptions
 from kineticpool import ConnectionManager
 from kineticpool.maps import MemcachedDeviceMap
 from kinetic import Client
+import utils 
 
 class ConnectionManagerTests(unittest.TestCase): 
+	
+	@classmethod
+	def setUpClass(cls):
+		cls._simulator = utils.Simulator(port=8123)
+		cls._simulator.start()
+
+	@classmethod
+	def tearDownClass(cls):
+		cls._simulator.shutdown()
 
 	def setUp(self):
 		c = Client()
 		c.connect()
 		self.device = c.config.worldWideName
+		print self.device
 		info = DeviceInfo(wwn=self.device, addresses=["127.0.0.1"])
 		m = MemcachedDeviceMap()
 		m[self.device] = info

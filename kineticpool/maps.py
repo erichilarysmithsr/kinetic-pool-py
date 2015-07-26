@@ -52,12 +52,12 @@ class MemcachedDeviceMap(object):
         
         info = DeviceInfo.from_json(data)
                     
-        # we are removing them to make it match the wwn coming from 
-        # the drive        
-        device = device.replace("-", " ")
+        # sanitizing for memcached
+        device = device.replace("-", " ")        
+        wwn = info.wwn.replace("-", " ")
         
         # verify key matches entry 
-        if info.wwn != device: raise InvalidEntry("WWN in entry does not match key.")
+        if wwn != device: raise InvalidEntry("WWN in entry does not match key.")
         
         return info
         
