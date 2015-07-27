@@ -11,3 +11,6 @@ dist/
 
 # scripting
 tmp/
+
+# simulator
+simulator.jar
