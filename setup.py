@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 with open('requirements.txt', 'r') as f:
     requires = [x.strip() for x in f if x.strip()]
 
-version = '0.0.3'
+from kineticpool import __version__
 
 setup(
     # overview    
@@ -11,15 +11,15 @@ setup(
     description = "A python connections manager for Kinetic devices",
 
     # technical info
-    version = version,
+    version = __version__,
     packages=find_packages(exclude=['test']),
     #requires = requires,
     install_requires=requires,
 
     # features
-    # entry_points = {
-    #    'console_scripts': [ 'kineticc = kinetic.cmd:main' ],
-    #},
+     entry_points = {
+        'console_scripts': [ 'kinetic-discovery = kineticpool.cmd:main' ],
+    },
 
     # copyright
     author='Ignacio Corderi',
@@ -31,7 +31,7 @@ setup(
     # categorization
     keywords = ('kinetic connection pool storage key/value seagate'),
     classifiers  = [
-        'Development Status :: 1 - Planning',
+        'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
         'Intended Audience :: Information Technology',
         'License :: OSI Approved :: MIT License',
