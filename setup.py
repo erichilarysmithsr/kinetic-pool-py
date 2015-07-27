@@ -1,9 +1,15 @@
 from setuptools import setup, find_packages
+from distutils.util import convert_path
 
 with open('requirements.txt', 'r') as f:
     requires = [x.strip() for x in f if x.strip()]
 
-from kineticpool import __version__
+main_ns = {}
+ver_path = convert_path('kineticpool/version.py')
+with open(ver_path) as ver_file:
+    exec(ver_file.read(), main_ns)
+    
+version = main_ns['__version__']
 
 setup(
     # overview    
@@ -11,7 +17,7 @@ setup(
     description = "A python connections manager for Kinetic devices",
 
     # technical info
-    version = __version__,
+    version = version,
     packages=find_packages(exclude=['test']),
     #requires = requires,
     install_requires=requires,

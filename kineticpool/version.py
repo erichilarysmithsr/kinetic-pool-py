@@ -20,6 +20,4 @@
 
 #@author: Ignacio Corderi
 
-from version import __version__
-
-from connection import ConnectionManager
+__version__ = '0.1.1'
