@@ -26,13 +26,15 @@ import eventlet
 import time
 import threading
 import socket
-from kinetic import AsyncClient
+from kinetic import Client
 import logging
 import struct
 import json
 from kineticpool.maps import MemcachedDeviceMap
 from kineticpool.core import DeviceInfo
+from kineticpool.exceptions import DeviceNotFound
 import sys 
+from dateutil import parser
 
 eventlet.monkey_patch()
 
@@ -48,27 +50,64 @@ class DiscoveredDrive(DeviceInfo):
     @staticmethod
     def from_json(raw): 
         data = json.loads(raw)
-        return DiscoveredDrive(data['world_wide_name'],
+        info = DiscoveredDrive(data['world_wide_name'],
                                data['serial_number'], data['manufacturer'],
                                data['firmware_version'], data['protocol_version'],
                                data['port'],
                                [str(iface['ipv4_addr']) for iface in data['network_interfaces']])            
-
-    def __str__(self):
-        return 'WWN={5}, SN={0}, Version={1}, Proto={2}, Port={3}, Addresses={4}'.format(
-                 self.serial_number, self.firmware_version, self.protocol_version,
-                 self.port, self.addresses, self.wwn)
+        if 'last_seen' in data:
+            info.last_seen = parser.parse(data['last_seen'])
+            
+        return info                                           
 
 class MemcachedHandler(object):
     
-    def __init__(self): 
+    def __init__(self, verify_addresses=True, logger=None): 
+       if logger == None: logger = logging.getLogger(__name__)
+       self.logger = logger
+       self.verify_addresses = verify_addresses
+        
        self.device_map = MemcachedDeviceMap()
-    
+
     def detected(self, drive): 
+        # Check existing data
+        try:
+            info = self.device_map[drive.wwn]
+            
+            # Verify connection issues     
+            #
+            # Interfaces coming from the drive will be trusted as correct
+            # although they might not be accesible
+            # if #known > #announced, all extra addresses will be dropped
+            if self.verify_addresses:    
+                known = set(info.addresses)
+                announced = set(drive.addresses) 
+                if known != announced:
+                    # This can happen when the device can't be accessed
+                    # through all of its interfaces                  
+                    missing = announced - known
+                    for a in missing: 
+                        try:
+                            c = Client(a, drive.port)
+                            c.connect()
+                            # interface is back up 
+                            self.logger.info('Device interface %s is back online: %s',
+                                a, drive)    
+                        except: 
+                            # Interface still down
+                            drive.addresses.remove(a)     
+            
+        except DeviceNotFound:
+            # This happens when a device goes offline
+            # and then comes back up
+            self.logger.info('Device back online: %s' % drive)            
+                
         self.device_map[drive.wwn] = drive
         
-    def new_drive(self, drive): pass 
-    
+    def new_drive(self, drive): 
+        self.logger.info('Device found: %s' % drive)
+        self.device_map[drive.wwn] = drive
+        
 class FileHandler(object):
     
     def __init__(self, path): 
@@ -87,8 +126,7 @@ class KineticDiscoveryManager(object):
         self.interface = interface
         self.drives = {}     
         self.handlers = []   
-        if logger == None:
-            logger = logging.getLogger(__name__)
+        if logger == None: logger = logging.getLogger(__name__)
         self.logger = logger
     
     def add_handler(self, handler):
@@ -107,18 +145,12 @@ class KineticDiscoveryManager(object):
             raw = s.recv(64 * 2 ** 10)            
         
             d = DiscoveredDrive.from_json(raw)
-    
+                
             # notify handlers
             for h in self.handlers:
                 if hasattr(h, "detected"): h.detected(d)
                 if not (d.wwn in self.drives): 
                     h.new_drive(d)                 
-             
-            if not (d.wwn in self.drives):                                      
-                self.logger.info(d)                 
-            else:
-                if self.drives[d.wwn].addresses[0] != d.addresses[0]:
-                    self.logger.warn('Address changed!! %s' % d)
                                 
             # update record     
             self.drives[d.wwn] = d
@@ -170,10 +202,14 @@ def main():
     LOG = logging.getLogger(__name__)
    
     mgr = KineticDiscoveryManager(args.interface, logger=LOG)
-    mgr.add_handler(MemcachedHandler())
+    mgr.add_handler(MemcachedHandler(logger=LOG))
     if args.drives != None:
         mgr.add_handler(FileHandler(args.drives))
-    mgr.run()
-
+    
+    try:
+        mgr.run()
+    except KeyboardInterrupt:
+        LOG.info("Process terminated by user.")
+                    
 if __name__ == '__main__':
     main()

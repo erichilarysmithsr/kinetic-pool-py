@@ -21,7 +21,15 @@
 #@author: Ignacio Corderi
 
 import json
-
+from datetime import datetime
+from dateutil import parser 
+ 
+def json_serialize(obj):
+    if isinstance(obj, datetime):
+        s = obj.isoformat()
+        return s
+    raise TypeError ("Type is not serializable")  
+  
 class DeviceInfo(object):
     
     def __init__(self, wwn, addresses, port=8123):
@@ -30,16 +38,22 @@ class DeviceInfo(object):
         self.wwn = wwn
         self.addresses = list(set(addresses)) # remove duplicates
         self.port = port 
+        self.last_seen = datetime.now()
        
     @staticmethod        
     def from_json(s): 
         x = json.loads(s)
         if not "wwn" in x: raise ValueError("Missing wwn information") 
         if not "addresses" in x: raise ValueError("Missing address information") 
-        return DeviceInfo(x["wwn"], x["addresses"], int(x.get("port", 8123)))
+        info = DeviceInfo(x["wwn"], x["addresses"], int(x.get("port", 8123)))
+        if 'last_seen' in x:
+            info.last_seen = parser.parse(x['last_seen'])
+        return info
                  
     def to_json(self):
-        return json.dumps(self.__dict__)        
+        return json.dumps(self.__dict__, default=json_serialize)      
         
     def __str__(self):
-        return self.to_json()        
+        info = { "wwn": self.wwn, "addresses": self.addresses } 
+        if self.port != 8123: info["port"] = self.port
+        return json.dumps(info)
