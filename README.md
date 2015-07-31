@@ -11,6 +11,13 @@ You can find more information on the [kinetic-protocol] or the [kinetic-py] clie
 [kinetic-protocol]:(https://github.com/Seagate/kinetic-protocol)
 [kinetic-py]:(https://github.com/Seagate/kinetic-py)
 
+
+Requirements
+============
+
+This project requires `memcached`
+
+
 Installing latest stable release
 ================================
     pip install kineticpool
@@ -23,10 +30,27 @@ Installing from Source
     cd kinetic-pool-py
     python setup.py develop
 
+
 Getting Started
 ===============
 
->> TODO
+There are two components, the _library_ and the `kinetic-discover` daemon.
+
+## The library
+
+```python
+import kineticpool
+
+mgr = kineticpool.ConnectionManager()
+c = mgr.get_connection('some-wwn')
+c.put('hello', 'world')
+c.close()
+```
+
+## The `kinetic-discover` daemon
+This daemon will listen for multicasts coming from the kinetic devices and will register them on _memcached_.
+
+    kinetic-discover en0 
 
 
 License
