@@ -34,7 +34,7 @@ Installing from Source
 Getting Started
 ===============
 
-There are two components, the _library_ and the `kinetic-discover` daemon.
+There are two components, the _library_ and the `kinetic-discovery` daemon.
 
 ## The library
 
@@ -47,10 +47,10 @@ c.put('hello', 'world')
 c.close()
 ```
 
-## The `kinetic-discover` daemon
+## The `kinetic-discovery` daemon
 This daemon will listen for multicasts coming from the kinetic devices and will register them on _memcached_.
 
-    kinetic-discover en0 
+    kinetic-discovery en0 
 
 
 License
