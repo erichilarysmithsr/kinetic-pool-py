@@ -1,6 +1,7 @@
 # **Kinetic-pool-py**
 [![Travis](https://img.shields.io/travis/Seagate/kinetic-pool-py.svg)](https://travis-ci.org/Seagate/kinetic-pool-py)
 [![PyPI](https://img.shields.io/pypi/v/kineticpool.svg)](https://pypi.python.org/pypi/kineticpool/)
+[![PyPI](https://img.shields.io/pypi/status/kineticpool.svg)](https://pypi.python.org/pypi/kineticpool/)
 [![PyPI](https://img.shields.io/pypi/l/kineticpool.svg)](https://github.com/Seagate/kinetic-pool-py/blob/master/LICENSE/mit.md)
 
 Introduction
