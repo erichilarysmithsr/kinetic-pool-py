@@ -28,7 +28,7 @@ class DeviceInfo(object):
         if addresses == None: raise ValueError("Addresses can't be None")
         if len(addresses) == 0: raise ValueError("Addresses can't be None")
         self.wwn = wwn
-        self.addresses = addresses
+        self.addresses = list(set(addresses)) # remove duplicates
         self.port = port 
        
     @staticmethod        
@@ -40,3 +40,6 @@ class DeviceInfo(object):
                  
     def to_json(self):
         return json.dumps(self.__dict__)        
+        
+    def __str__(self):
+        return self.to_json()        

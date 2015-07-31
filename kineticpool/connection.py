@@ -50,31 +50,41 @@ class ConnectionManager(object):
     def _new_connection(self, device, **kwargs):
         kwargs.setdefault('connect_timeout', self.connect_timeout)
         info = self.device_map[device]
-        for i in range(1, self.connect_retry + 1):
-            try:
-                c = Client(random.choice(info.addresses), info.port,**kwargs)
-                c.connect()
-                if c.config.worldWideName != info.wwn: 
-                    raise WrongDeviceConnection("Drive at %s is %s, expected %s." % 
-                        (c, c.config.worldWideName, info.wwn))
-                return c                        
-            except Timeout:
-                self.logger.warning('Drive %s connect timeout #%d (%ds)' % (
-                    device, i, self.connect_timeout))            
-            except WrongDeviceConnection: 
-                self.logger.exception('Drive %s has an incorrect WWN' % (device))
-                self.faulted_device(device) # TODO: fault entire device or just the address ?                      
-                raise        
-            except Exception:
-                self.logger.exception('Drive %s connection error #%d' % (
-                    device, i))
-            if i < self.connect_retry:
-                sleep(1)
-        msg = 'Unable to connect to drive %s after %s attempts' % (
-            device, i)
-        self.logger.error(msg)
+        
+        while len(info.addresses) > 0: 
+            # Try to connect to a random address 
+            address = random.choice(info.addresses)
+            for i in range(1, self.connect_retry + 1):
+                try:
+                    c = Client(address, info.port, **kwargs)
+                    c.connect()
+                    if c.config.worldWideName != info.wwn: 
+                        raise WrongDeviceConnection("Drive at %s is %s, expected %s." % 
+                            (c, c.config.worldWideName, info.wwn))
+                    return c                        
+                except Timeout:
+                    self.logger.warning('Drive %s connect timeout #%d (%ds)' % (
+                        device, i, self.connect_timeout))            
+                except WrongDeviceConnection: 
+                    # Wrong number, no need to keep trying, just remove it
+                    self.logger.exception('Drive %s has an incorrect WWN' % (device))
+                    self.faulted_device(device)                     
+                    raise        
+                except Exception:
+                    self.logger.exception('Drive %s connection error #%d' % (
+                        device, i))
+                if i < self.connect_retry:
+                    sleep(1)
+            self.logger.error('Unable to connect to drive %s at %s after %s attempts' % (
+                device, c, i))
+            
+            # Remove address from map    
+            info.addresses.remove(address)
+            self.device_map[device] = info
+            
         self.faulted_device(device)        
-        raise DeviceNotAvailable(msg)    
+        raise DeviceNotAvailable("Unable to connect to drive %s at any of it's addresses after %s attempts on each." % (
+                device, i))    
 
     def get_connection(self, device):
         conn = None
