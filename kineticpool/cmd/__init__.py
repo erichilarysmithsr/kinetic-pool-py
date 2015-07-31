@@ -32,7 +32,7 @@ import struct
 import json
 from kineticpool.maps import MemcachedDeviceMap
 from kineticpool.core import DeviceInfo
-from kineticpool.exceptions import DeviceNotFound
+from kineticpool.exceptions import DeviceNotFound, InvalidEntry
 import sys 
 from dateutil import parser
 import netifaces
@@ -99,6 +99,10 @@ class MemcachedHandler(object):
                             # Interface still down
                             drive.addresses.remove(a)     
             
+        except InvalidEntry as ex:
+            # Might happen that some script/test/old version 
+            # wrote some garbage, no need to clean, we will overwrite 
+            self.logger.warn('Corrupted entry detected: %s' % ex)
         except DeviceNotFound:
             # This happens when a device goes offline
             # and then comes back up
