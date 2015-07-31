@@ -26,6 +26,7 @@ from kinetic import Client
 
 from exceptions import WrongDeviceConnection, DeviceNotAvailable
 from maps import MemcachedDeviceMap
+import random 
 
 LOG = logging.getLogger(__name__)
 
@@ -51,7 +52,7 @@ class ConnectionManager(object):
         info = self.device_map[device]
         for i in range(1, self.connect_retry + 1):
             try:
-                c = Client(info.addresses[0], info.port,**kwargs)
+                c = Client(random.choice(info.addresses), info.port,**kwargs)
                 c.connect()
                 if c.config.worldWideName != info.wwn: 
                     raise WrongDeviceConnection("Drive at %s is %s, expected %s." % 
@@ -59,10 +60,10 @@ class ConnectionManager(object):
                 return c                        
             except Timeout:
                 self.logger.warning('Drive %s connect timeout #%d (%ds)' % (
-                    device, i, self.connect_timeout))
+                    device, i, self.connect_timeout))            
             except WrongDeviceConnection: 
                 self.logger.exception('Drive %s has an incorrect WWN' % (device))
-                self.faulted_device(device)      
+                self.faulted_device(device) # TODO: fault entire device or just the address ?                      
                 raise        
             except Exception:
                 self.logger.exception('Drive %s connection error #%d' % (
