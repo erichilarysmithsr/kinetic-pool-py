@@ -24,7 +24,7 @@ import logging
 from eventlet import sleep, Timeout
 from kinetic import Client
 
-from exceptions import WrongDeviceConnection, DeviceNotAvailable
+from exceptions import WrongDeviceConnection, DeviceNotAvailable, InvalidEntry, DeviceNotFound
 from maps import MemcachedDeviceMap
 import random 
 
@@ -49,8 +49,14 @@ class ConnectionManager(object):
         		
     def _new_connection(self, device, **kwargs):
         kwargs.setdefault('connect_timeout', self.connect_timeout)
-        info = self.device_map[device]
         
+        try:
+            info = self.device_map[device]
+        except InvalidEntry as ex:
+            self.faulted_device(device)        
+            raise DeviceNotAvailable("Invalid entry for device %s. %s" % (
+                    device, ex))                             
+             
         while len(info.addresses) > 0: 
             # Try to connect to a random address 
             address = random.choice(info.addresses)

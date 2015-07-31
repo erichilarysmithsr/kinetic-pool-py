@@ -50,8 +50,11 @@ class MemcachedDeviceMap(object):
         if data is None:
             raise DeviceNotFound("No entry for device %s." % device)
         
-        info = DeviceInfo.from_json(data)
-                    
+        try:
+            info = DeviceInfo.from_json(data)
+        except: 
+            raise InvalidEntry("Can't parse entry (Raw: %s)." % data) 
+                            
         # sanitizing for memcached
         device = device.replace("-", " ")        
         wwn = info.wwn.replace("-", " ")
