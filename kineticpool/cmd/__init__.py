@@ -35,6 +35,7 @@ from kineticpool.core import DeviceInfo
 from kineticpool.exceptions import DeviceNotFound
 import sys 
 from dateutil import parser
+import netifaces
 
 eventlet.monkey_patch()
 
@@ -92,7 +93,8 @@ class MemcachedHandler(object):
                             c.connect()
                             # interface is back up 
                             self.logger.info('Device interface %s is back online: %s',
-                                a, drive)    
+                                a, drive)   
+                            c.close()                                 
                         except: 
                             # Interface still down
                             drive.addresses.remove(a)     
@@ -182,8 +184,8 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(description='Kinetic Multicast Discovery Tool')
-    parser.add_argument('interface', metavar='interface',
-                       help='Address of interface to listen on (i.e. 192.168.0.1)')
+    parser.add_argument('interface', metavar='interface', default=None,
+                       help='Interface to listen on (i.e. en0)')
     parser.add_argument('--drives', dest='drives', default=None,
                        help='Output discovered devices to a file')
     parser.add_argument('--log', dest='loglevel', default="info",
@@ -201,7 +203,15 @@ def main():
 
     LOG = logging.getLogger(__name__)
    
-    mgr = KineticDiscoveryManager(args.interface, logger=LOG)
+    if args.interface != None:
+        address = netifaces.ifaddresses(args.interface)[netifaces.AF_INET][0]['addr']       
+    else: 
+        LOG.error("Interface required!")
+        return 1
+        
+    LOG.info('Listening on %s (%s)' % (args.interface, address))        
+   
+    mgr = KineticDiscoveryManager(address, logger=LOG)
     mgr.add_handler(MemcachedHandler(logger=LOG))
     if args.drives != None:
         mgr.add_handler(FileHandler(args.drives))
